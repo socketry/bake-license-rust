@@ -12,7 +12,7 @@ dependencies = [
 
 [[package]]
 name = "bake-macros"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -190,7 +190,7 @@ dependencies = [
 
 [[package]]
 name = "socketry-bake"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "bake-macros",
  "linkme",
