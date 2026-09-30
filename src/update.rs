@@ -1,3 +1,6 @@
+// Released under the MIT License.
+// Copyright, 2026, by Samuel Williams.
+
 use crate::authorship::{self, Copyright};
 use crate::source;
 use bake::{Error, Result};

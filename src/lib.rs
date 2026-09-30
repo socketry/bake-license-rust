@@ -1,5 +1,7 @@
-//! License and copyright maintenance tasks for Bake.
+// Released under the MIT License.
+// Copyright, 2026, by Samuel Williams.
 
+//! License and copyright maintenance tasks for Bake.
 mod authorship;
 mod source;
 mod update;

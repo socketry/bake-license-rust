@@ -1,6 +1,6 @@
 [package]
 name = "bake-license"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2024"
 license = "MIT"
 repository = "https://github.com/socketry/bake-license-rust"
@@ -22,5 +22,5 @@ reviewers = ["socketry/managers"]
 name = "bake_license"
 
 [dependencies]
-bake = { package = "socketry-bake", version = "0.2.0", path = "../bake-rust" }
+bake = "0.17.0"
 tempfile = "3.27"
