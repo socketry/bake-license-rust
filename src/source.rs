@@ -1,3 +1,6 @@
+// Released under the MIT License.
+// Copyright, 2026, by Samuel Williams.
+
 use crate::authorship::Copyright;
 
 pub(crate) fn update_source(contents: &str, copyrights: &[Copyright]) -> String {

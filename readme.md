@@ -31,5 +31,5 @@ untracked files, so commit new files before expecting them to receive a header.
 
 The task executable also links Bake Agent Context. Run
 `cargo bake agent:context:install` to install context from dependencies such as
-`socketry-bake`; generated `.agents/context/` files are ignored by Git. Shared
+`bake`; generated `.agents/context/` files are ignored by Git. Shared
 Rust guidance lives in [Bake Agent Context](https://github.com/socketry/bake-agent-context-rust/blob/main/context/rust.md).

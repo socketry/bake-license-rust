@@ -1,3 +1,6 @@
+// Released under the MIT License.
+// Copyright, 2026, by Samuel Williams.
+
 use bake::{Error, Result};
 use std::collections::{BTreeMap, HashSet};
 use std::path::Path;
