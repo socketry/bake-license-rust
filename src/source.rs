@@ -18,10 +18,7 @@ pub(crate) fn update_source(contents: &str, copyrights: &[Copyright]) -> String 
         let mut open_brackets = 0isize;
         let mut in_string = false;
         let mut escaped = false;
-        loop {
-            let Some(line) = lines.get(prefix_length) else {
-                break;
-            };
+        while let Some(line) = lines.get(prefix_length) {
             for character in clean_line(line).chars() {
                 if in_string {
                     if escaped {

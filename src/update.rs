@@ -3,7 +3,7 @@ use crate::source;
 use bake::{Error, Result};
 use std::fs;
 use std::io::Write;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use tempfile::NamedTempFile;
 
 const MIT_LICENSE: &str = r#"Permission is hereby granted, free of charge, to any person obtaining a copy
