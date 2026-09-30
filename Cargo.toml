@@ -1,0 +1,19 @@
+[package]
+name = "bake-license"
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+repository = "https://github.com/socketry/bake-license-rust"
+description = "License and copyright maintenance tasks for Bake"
+readme = "readme.md"
+include = ["src/**", "Cargo.toml", "readme.md", "license.md", "releases.md"]
+
+[package.metadata.bake.release]
+reviewers = ["socketry/managers"]
+
+[lib]
+name = "bake_license"
+
+[dependencies]
+bake = { package = "socketry-bake", version = "0.2.0", path = "../bake-rust" }
+tempfile = "3.27"
