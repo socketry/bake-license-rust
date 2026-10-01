@@ -1,5 +1,9 @@
 # Releases
 
+## Unreleased
+
+- Preserve heading-like text inside HTML blocks when removing generated license sections.
+
 ## v0.1.2
 
 - Create or update GitHub Releases after successful crates.io publication.
