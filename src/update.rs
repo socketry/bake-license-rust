@@ -4,6 +4,7 @@
 use crate::authorship::{self, Copyright};
 use crate::source;
 use bake::{Error, Result};
+use socketry_markdown::{ParseOptions, mdast::Node, to_mdast};
 use std::fs;
 use std::io::Write;
 use std::path::Path;
@@ -90,90 +91,59 @@ fn license_document(copyrights: &[Copyright]) -> String {
 }
 
 fn remove_license_section(document: &str) -> String {
+    let Ok(root) = to_mdast(document, &ParseOptions::default()) else {
+        return document.to_owned();
+    };
+    let Some(children) = root.children() else {
+        return document.to_owned();
+    };
+
     let mut output = String::with_capacity(document.len());
-    let mut skipped_heading_level = None;
-    let mut fence: Option<(char, usize)> = None;
+    let mut copied_until = 0;
 
-    for line in document.split_inclusive('\n') {
-        let clean = line.trim_end_matches('\n').trim_end_matches('\r');
-
-        if let Some((marker, length)) = fence {
-            if closes_fence(clean, marker, length) {
-                fence = None;
-            }
-            if skipped_heading_level.is_none() {
-                output.push_str(line);
-            }
+    for (index, node) in children.iter().enumerate() {
+        let Node::Heading(heading) = node else {
+            continue;
+        };
+        if !heading_text(node).eq_ignore_ascii_case("license") {
+            continue;
+        }
+        let Some(position) = node.position() else {
+            continue;
+        };
+        let start = position.start.offset;
+        if start < copied_until {
             continue;
         }
 
-        if let Some((marker, length)) = opens_fence(clean) {
-            fence = Some((marker, length));
-            if skipped_heading_level.is_none() {
-                output.push_str(line);
-            }
-            continue;
-        }
+        let end = children
+            .iter()
+            .skip(index + 1)
+            .find_map(|next| {
+                let Node::Heading(next_heading) = next else {
+                    return None;
+                };
+                (next_heading.depth <= heading.depth)
+                    .then(|| next.position().map(|position| position.start.offset))
+                    .flatten()
+            })
+            .unwrap_or(document.len());
 
-        if let Some(level) = skipped_heading_level {
-            if let Some((next_level, _)) = heading(clean)
-                && next_level <= level
-            {
-                skipped_heading_level = None;
-            } else {
-                continue;
-            }
-        }
-
-        if let Some((level, title)) = heading(clean)
-            && title.eq_ignore_ascii_case("license")
-        {
-            skipped_heading_level = Some(level);
-            continue;
-        }
-
-        output.push_str(line);
+        output.push_str(&document[copied_until..start]);
+        copied_until = end;
     }
 
+    output.push_str(&document[copied_until..]);
     output
 }
 
-fn heading(line: &str) -> Option<(usize, &str)> {
-    let trimmed = line.trim_start();
-    let level = trimmed.bytes().take_while(|byte| *byte == b'#').count();
-    if !(1..=6).contains(&level)
-        || !trimmed
-            .as_bytes()
-            .get(level)
-            .is_some_and(u8::is_ascii_whitespace)
-    {
-        return None;
-    }
-
-    let title = trimmed[level..].trim().trim_end_matches('#').trim();
-    Some((level, title))
-}
-
-fn opens_fence(line: &str) -> Option<(char, usize)> {
-    let trimmed = line.trim_start();
-    let marker = trimmed.chars().next()?;
-    if !matches!(marker, '`' | '~') {
-        return None;
-    }
-    let length = trimmed
-        .chars()
-        .take_while(|character| *character == marker)
-        .count();
-    (length >= 3).then_some((marker, length))
-}
-
-fn closes_fence(line: &str, marker: char, length: usize) -> bool {
-    let trimmed = line.trim_start();
-    let marker_length = trimmed
-        .chars()
-        .take_while(|character| *character == marker)
-        .count();
-    marker_length >= length && trimmed[marker_length..].trim().is_empty()
+fn heading_text(node: &Node) -> String {
+    let text = node.text_content();
+    text.strip_suffix("\r\n")
+        .or_else(|| text.strip_suffix('\n'))
+        .or_else(|| text.strip_suffix('\r'))
+        .unwrap_or(text.as_str())
+        .to_owned()
 }
 
 fn replace_if_changed(path: &Path, contents: &str) -> Result<bool> {
@@ -200,4 +170,30 @@ fn replace_if_changed(path: &Path, contents: &str) -> Result<bool> {
         .persist(&target_path)
         .map_err(|error| Error::from(error.error))?;
     Ok(true)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::remove_license_section;
+
+    #[test]
+    fn removes_the_license_section_until_the_next_equal_or_higher_heading() {
+        let document = "# Project\n\n## License\n\nMIT terms.\n\n### Details\n\nMore terms.\n\n## Usage\n\nUse the project.\n";
+        assert_eq!(
+            remove_license_section(document),
+            "# Project\n\n## Usage\n\nUse the project.\n"
+        );
+    }
+
+    #[test]
+    fn leaves_license_text_inside_html_blocks_untouched() {
+        let document = "# Project\n\n<div>\n## License\n</div>\n\n## Usage\n\nUse the project.\n";
+        assert_eq!(remove_license_section(document), document);
+    }
+
+    #[test]
+    fn leaves_documents_without_a_license_heading_untouched() {
+        let document = "# Project\n\n## Usage\n\nUse the project.\n";
+        assert_eq!(remove_license_section(document), document);
+    }
 }
