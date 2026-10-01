@@ -1,5 +1,10 @@
 # Releases
 
+## v0.1.2
+
+- Create or update GitHub Releases after successful crates.io publication.
+- Keep release versioning tasks compatible with the current local crate.
+
 ## v0.1.1
 
 - Switch the runtime dependency from `socketry-bake` to `bake` 0.17.0.
