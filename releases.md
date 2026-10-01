@@ -1,6 +1,6 @@
 # Releases
 
-## Unreleased
+## v0.1.3
 
 - Preserve heading-like text inside HTML blocks when removing generated license sections.
 
