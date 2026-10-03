@@ -1,5 +1,9 @@
 # Releases
 
+## v0.1.4
+
+- Preserve CRLF line endings when adding license headers to Rust source files.
+
 ## v0.1.3
 
 - Preserve heading-like text inside HTML blocks when removing generated license sections.
