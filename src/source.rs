@@ -5,6 +5,7 @@ use crate::authorship::Copyright;
 
 pub(crate) fn update_source(contents: &str, copyrights: &[Copyright]) -> String {
     let lines: Vec<&str> = contents.split_inclusive('\n').collect();
+    let newline = line_ending(contents);
     let mut prefix_length = 0;
 
     if lines
@@ -89,21 +90,19 @@ pub(crate) fn update_source(contents: &str, copyrights: &[Copyright]) -> String 
         output.push_str(line);
     }
     if prefix_length > 0 {
-        output.push('\n');
+        output.push_str(newline);
     }
 
-    output.push_str("// Released under the MIT License.\n");
+    output.push_str("// Released under the MIT License.");
+    output.push_str(newline);
     for copyright in copyrights {
         output.push_str(&copyright.source_comment());
-        output.push('\n');
+        output.push_str(newline);
     }
-    output.push('\n');
+    output.push_str(newline);
 
     for line in documentation {
         output.push_str(line);
-    }
-    if !output.ends_with('\n') && !lines[body_start..].is_empty() {
-        output.push('\n');
     }
     for line in &lines[body_start..] {
         output.push_str(line);
@@ -129,4 +128,111 @@ fn is_license_metadata(line: &str) -> bool {
 
 fn clean_line(line: &str) -> &str {
     line.trim_end_matches('\n').trim_end_matches('\r')
+}
+
+fn line_ending(contents: &str) -> &str {
+    match contents.find('\n') {
+        Some(index) if contents[..index].ends_with('\r') => "\r\n",
+        _ => "\n",
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn copyright() -> Copyright {
+        Copyright::new(2020, 2024, "Alice")
+    }
+
+    #[test]
+    fn inserts_headers_after_a_shebang_and_multiline_inner_attributes() {
+        let contents = concat!(
+            "#!/usr/bin/env rustx\n",
+            "#![cfg_attr(\n",
+            "    feature = \"doc\",\n",
+            "    doc = \"contains ] and escaped \\\" [\"\n",
+            ")]\n",
+            "//! Module documentation.\n",
+            "// Released under an old license.\n",
+            "// Copyright, 2018, by Previous Author.\n",
+            "// SPDX-License-Identifier: Apache-2.0\n",
+            "/// Public API documentation.\n",
+            "// Keep this comment.\n",
+            "\n",
+            "pub fn example() {}\n",
+        );
+
+        let updated = update_source(contents, &[copyright()]);
+
+        assert_eq!(
+            updated,
+            concat!(
+                "#!/usr/bin/env rustx\n",
+                "#![cfg_attr(\n",
+                "    feature = \"doc\",\n",
+                "    doc = \"contains ] and escaped \\\" [\"\n",
+                ")]\n",
+                "\n",
+                "// Released under the MIT License.\n",
+                "// Copyright, 2020-2024, by Alice.\n",
+                "\n",
+                "//! Module documentation.\n",
+                "/// Public API documentation.\n",
+                "// Keep this comment.\n",
+                "pub fn example() {}\n",
+            )
+        );
+    }
+
+    #[test]
+    fn preserves_crate_inner_attributes_and_replaces_old_metadata() {
+        let contents = concat!(
+            "#![allow(dead_code)]\r\n",
+            "\r\n",
+            "// old comment\r\n",
+            "// Copyright, 2018, by Previous Author.\r\n",
+            "\r\n",
+            "fn main() {}\r\n",
+        );
+
+        let updated = update_source(contents, &[copyright()]);
+
+        assert!(updated.starts_with(
+            "#![allow(dead_code)]\r\n\r\n// Released under the MIT License.\r\n// Copyright, 2020-2024, by Alice.\r\n\r\n// old comment\r\n"
+        ));
+        assert!(updated.ends_with("fn main() {}\r\n"));
+    }
+
+    #[test]
+    fn handles_a_source_file_without_a_prefix_or_existing_comments() {
+        assert_eq!(
+            update_source("pub fn example() {}\n", &[]),
+            "// Released under the MIT License.\n\npub fn example() {}\n"
+        );
+        assert_eq!(line_ending("single line"), "\n");
+    }
+
+    #[test]
+    fn recognizes_license_metadata_in_plain_and_documentation_comments() {
+        for line in [
+            "// Released under the MIT License.",
+            "// Copyright, 2024, by Alice.",
+            "// SPDX-License-Identifier: MIT",
+            "//! Released under the MIT License.",
+            "/// Copyright, 2024, by Alice.",
+        ] {
+            assert!(is_license_metadata(line), "{line:?}");
+        }
+
+        for line in [
+            "pub fn example() {}",
+            "// Ordinary comment.",
+            "//! Module docs.",
+        ] {
+            assert!(!is_license_metadata(line), "{line:?}");
+        }
+
+        assert_eq!(clean_line("// comment\r\n"), "// comment");
+    }
 }
