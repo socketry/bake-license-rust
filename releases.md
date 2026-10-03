@@ -1,5 +1,13 @@
 # Releases
 
+## Unreleased
+
+
+## v0.1.5
+
+- Use the shared `socketry-project` Releasing skill for the standard release
+  process and remove references to the duplicate Bake Cargo publishing context.
+
 ## v0.1.4
 
 - Preserve CRLF line endings when adding license headers to Rust source files.

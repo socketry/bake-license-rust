@@ -34,13 +34,19 @@ before running the task if they should receive copyright headers.
 Prepare a release with `cargo bake cargo:version:patch` (or `minor`, `major`,
 or `bump --version X.Y.Z`), then run `cargo bake cargo:release` and open a
 pull request. After review and merge, GitHub Actions publishes the release
-when the configured `crates-io` environment approves it. See the
-[Cargo publishing guide](https://github.com/socketry/bake-cargo-rust/blob/main/context/publishing.md).
+when the configured `crates-io` environment approves it. Follow the shared
+[Releasing skill](https://github.com/socketry/socketry-project-rust/blob/main/context/releasing.md)
+for the standard process.
 
 ## Releases
 
 <!-- bake-readme:releases:start -->
 See [releases.md](releases.md) for the full release history.
+
+### v0.1.5
+
+- Use the shared `socketry-project` Releasing skill for the standard release
+  process and remove references to the duplicate Bake Cargo publishing context.
 
 ### v0.1.4
 
@@ -49,11 +55,6 @@ See [releases.md](releases.md) for the full release history.
 ### v0.1.3
 
 - Preserve heading-like text inside HTML blocks when removing generated license sections.
-
-### v0.1.2
-
-- Create or update GitHub Releases after successful crates.io publication.
-- Keep release versioning tasks compatible with the current local crate.
 <!-- bake-readme:releases:end -->
 
 ## See Also
