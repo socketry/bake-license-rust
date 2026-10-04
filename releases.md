@@ -1,5 +1,10 @@
 # Releases
 
+## Unreleased
+
+- Remove the redundant `bake_license::license` module. Use the root API and
+  `license:update` task instead.
+
 ## v0.1.6
 
 - Declare compatibility with the Bake 0.x API so task libraries can share one task registry
