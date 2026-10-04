@@ -43,6 +43,11 @@ for the standard process.
 <!-- bake-readme:releases:start -->
 See [releases.md](releases.md) for the full release history.
 
+### v0.2.0
+
+- Remove the redundant `bake_license::license` module. Use the root API and
+  `license:update` task instead.
+
 ### v0.1.6
 
 - Declare compatibility with the Bake 0.x API so task libraries can share one task registry
@@ -52,10 +57,6 @@ See [releases.md](releases.md) for the full release history.
 
 - Use the shared `socketry-project` Releasing skill for the standard release
   process and remove references to the duplicate Bake Cargo publishing context.
-
-### v0.1.4
-
-- Preserve CRLF line endings when adding license headers to Rust source files.
 <!-- bake-readme:releases:end -->
 
 ## See Also

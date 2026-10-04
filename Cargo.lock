@@ -49,7 +49,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "becb50242676154a68805b9631b46c49d846c042e9b1017761fa50dd7a989914"
 dependencies = [
  "bake",
- "bake-license",
+ "bake-license 0.1.6",
  "bake-releases",
  "serde",
  "serde_json",
@@ -62,6 +62,17 @@ dependencies = [
 [[package]]
 name = "bake-license"
 version = "0.1.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "16edcf8dc68967ffdf25192109ad1058e7b4c1d56a5b2fd9c98b97156df33882"
+dependencies = [
+ "bake",
+ "socketry-markdown",
+ "tempfile",
+]
+
+[[package]]
+name = "bake-license"
+version = "0.2.0"
 dependencies = [
  "bake",
  "socketry-markdown",
@@ -660,7 +671,7 @@ dependencies = [
  "bake",
  "bake-agent-context",
  "bake-cargo",
- "bake-license",
+ "bake-license 0.1.6",
  "bake-readme",
  "bake-releases",
  "bake-test-rust",
