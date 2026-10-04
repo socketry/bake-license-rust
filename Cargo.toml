@@ -1,6 +1,6 @@
 [package]
 name = "bake-license"
-version = "0.1.6"
+version = "0.2.0"
 edition = "2024"
 license = "MIT"
 repository = "https://github.com/socketry/bake-license-rust"
@@ -25,6 +25,3 @@ name = "bake_license"
 socketry-markdown = "0.1.0"
 bake = "0"
 tempfile = "3.27"
-
-[patch.crates-io]
-bake-license = { path = "." }

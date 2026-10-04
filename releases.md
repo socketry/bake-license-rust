@@ -1,6 +1,6 @@
 # Releases
 
-## Unreleased
+## v0.2.0
 
 - Remove the redundant `bake_license::license` module. Use the root API and
   `license:update` task instead.
