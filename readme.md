@@ -10,15 +10,15 @@ Updating license text and copyright headers by hand is repetitive. This task use
 
 Add `bake-license` to the private `bake/` task package:
 
-```toml
-[dependencies]
-bake-license = "0.2"
-```
-
-Regenerate task links and run the updater:
-
 ```sh
 cargo bake --regenerate
+cargo add --manifest-path bake/Cargo.toml bake-license
+cargo bake --regenerate
+```
+
+Run the updater:
+
+```sh
 cargo bake license:update
 ```
 

@@ -28,13 +28,9 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE."#;
 
-#[derive(Clone, Debug, Default, Eq, PartialEq)]
-pub struct Update {
-    pub source_files: usize,
-    pub files_changed: usize,
-}
+use crate::UpdateSummary;
 
-pub fn update(root: &Path) -> Result<Update> {
+pub fn update(root: &Path) -> Result<UpdateSummary> {
     update_with(root, &mut FileOperations)
 }
 
@@ -64,9 +60,9 @@ struct FileOperations;
 
 impl UpdateOperations for FileOperations {}
 
-fn update_with(root: &Path, operations: &mut impl UpdateOperations) -> Result<Update> {
+fn update_with(root: &Path, operations: &mut impl UpdateOperations) -> Result<UpdateSummary> {
     let repository_copyrights = operations.repository(root)?;
-    let mut summary = Update::default();
+    let mut summary = UpdateSummary::default();
 
     let license_path = root.join("license.md");
     let license = license_document(&repository_copyrights);
@@ -465,7 +461,7 @@ mod tests {
         let first = update(repository.root()).unwrap();
         assert_eq!(
             first,
-            Update {
+            UpdateSummary {
                 source_files: 1,
                 files_changed: 3,
             }
@@ -487,7 +483,7 @@ mod tests {
 
         assert_eq!(
             update(repository.root()).unwrap(),
-            Update {
+            UpdateSummary {
                 source_files: 1,
                 files_changed: 0,
             }
@@ -520,7 +516,7 @@ mod tests {
 
         assert_eq!(
             update(repository.root()).unwrap(),
-            Update {
+            UpdateSummary {
                 source_files: 0,
                 files_changed: 1,
             }

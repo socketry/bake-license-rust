@@ -5,11 +5,15 @@
 mod authorship;
 mod source;
 mod update;
+mod update_summary;
 
 #[cfg(test)]
 mod test_support;
 
-pub use update::{Update, update};
+pub use update::update;
+pub use update_summary::UpdateSummary;
+/// Compatibility name for [`UpdateSummary`].
+pub use update_summary::UpdateSummary as Update;
 
 /// Refresh `license.md`, the README License section, and Rust source headers.
 #[bake::task(name = "license:update")]
