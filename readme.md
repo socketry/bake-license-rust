@@ -34,6 +34,10 @@ Prepare a release with `cargo bake cargo:version:patch` (or `minor`, `major`, or
 
 See [releases.md](releases.md) for the full release history.
 
+### v0.2.2
+
+- Expose the descriptive `UpdateSummary` result type while preserving `Update` as a compatibility alias.
+
 ### v0.2.1
 
 - Resolve development task dependencies to the current checkout.
@@ -47,10 +51,6 @@ See [releases.md](releases.md) for the full release history.
 ### v0.2.0
 
 - Remove the redundant `bake_license::license` module. Use the root API and `license:update` task instead.
-
-### v0.1.6
-
-- Declare compatibility with the Bake 0.x API so task libraries can share one task registry when upgrading to crate-derived task namespaces.
 
 <!-- bake-readme:releases:end -->
 

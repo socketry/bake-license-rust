@@ -1,6 +1,6 @@
 # Releases
 
-## Unreleased
+## v0.2.2
 
 - Expose the descriptive `UpdateSummary` result type while preserving `Update` as a compatibility alias.
 
