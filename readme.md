@@ -14,7 +14,7 @@ Add `bake-license` to the private `bake/` task package:
 
 ```toml
 [dependencies]
-bake-license = "0.1"
+bake-license = "0.2"
 ```
 
 Regenerate task links and run the updater:
@@ -68,4 +68,14 @@ See [releases.md](releases.md) for the full release history.
 
 ## Contributing
 
-Please open an issue or pull request on [GitHub](https://github.com/socketry/bake-license-rust).
+Please open an issue or pull request on
+[GitHub](https://github.com/socketry/bake-license-rust).
+
+### Agent Context
+
+Run `cargo bake agent:context:install` to install shared context and skills.
+Read `.agents/context/index.md` to find relevant guides, follow `agents.md` if
+present, and apply skills under `.agents/skills/`. See the [Agent Context guide]
+for guidance on package context and repository-only instructions.
+
+[Agent Context guide]: https://github.com/socketry/bake-agent-context-rust/blob/main/context/agent-context.md

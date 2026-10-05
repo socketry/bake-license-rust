@@ -1,5 +1,9 @@
 # Releases
 
+## Unreleased
+
+- Update the usage example and document shared agent context setup.
+
 ## v0.2.0
 
 - Remove the redundant `bake_license::license` module. Use the root API and
