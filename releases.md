@@ -1,24 +1,26 @@
 # Releases
 
-## Unreleased
+## v0.2.1
+
+- Resolve development task dependencies to the current checkout.
+
+- Adopt `socketry-project` 0.3.7 for shared project tasks and Markdown normalization.
+
+- Require the aggregate test and coverage result for pull request merges.
 
 - Update the usage example and document shared agent context setup.
 
 ## v0.2.0
 
-- Remove the redundant `bake_license::license` module. Use the root API and
-  `license:update` task instead.
+- Remove the redundant `bake_license::license` module. Use the root API and `license:update` task instead.
 
 ## v0.1.6
 
-- Declare compatibility with the Bake 0.x API so task libraries can share one task registry
-  when upgrading to crate-derived task namespaces.
-
+- Declare compatibility with the Bake 0.x API so task libraries can share one task registry when upgrading to crate-derived task namespaces.
 
 ## v0.1.5
 
-- Use the shared `socketry-project` Releasing skill for the standard release
-  process and remove references to the duplicate Bake Cargo publishing context.
+- Use the shared `socketry-project` Releasing skill for the standard release process and remove references to the duplicate Bake Cargo publishing context.
 
 ## v0.1.4
 
@@ -38,6 +40,7 @@
 - Switch the runtime dependency from `socketry-bake` to `bake` 0.17.0.
 
 - Add Bake Agent Context tasks to the project's development executable.
+
 - Link the shared Rust context guidance from the README.
 
 ## v0.1.0
