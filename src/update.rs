@@ -35,39 +35,70 @@ pub struct Update {
 }
 
 pub fn update(root: &Path) -> Result<Update> {
-    let repository_copyrights = authorship::repository(root)?;
+    update_with(root, &mut FileOperations)
+}
+
+trait UpdateOperations {
+    fn repository(&mut self, root: &Path) -> Result<Vec<Copyright>> {
+        authorship::repository(root)
+    }
+
+    fn rust_files(&mut self, root: &Path) -> Result<Vec<String>> {
+        authorship::rust_files(root)
+    }
+
+    fn file(&mut self, root: &Path, path: &Path) -> Result<Vec<Copyright>> {
+        authorship::file(root, path)
+    }
+
+    fn read_file(&mut self, path: &Path) -> Result<String> {
+        Ok(fs::read_to_string(path)?)
+    }
+
+    fn replace_if_changed(&mut self, path: &Path, contents: &str) -> Result<bool> {
+        replace_if_changed(path, contents)
+    }
+}
+
+struct FileOperations;
+
+impl UpdateOperations for FileOperations {}
+
+fn update_with(root: &Path, operations: &mut impl UpdateOperations) -> Result<Update> {
+    let repository_copyrights = operations.repository(root)?;
     let mut summary = Update::default();
 
     let license_path = root.join("license.md");
     let license = license_document(&repository_copyrights);
-    if replace_if_changed(&license_path, &license)? {
+    if operations.replace_if_changed(&license_path, &license)? {
         summary.files_changed += 1;
     }
 
     let readme_path = root.join("readme.md");
     if readme_path.is_file() {
-        let readme = fs::read_to_string(&readme_path)?;
+        let readme = operations.read_file(&readme_path)?;
         let updated = remove_license_section(&readme);
-        if replace_if_changed(&readme_path, &updated)? {
+        if operations.replace_if_changed(&readme_path, &updated)? {
             summary.files_changed += 1;
         }
     }
 
-    for relative_path in authorship::rust_files(root)? {
+    for relative_path in operations.rust_files(root)? {
         let path = root.join(&relative_path);
         if !path.is_file() {
             continue;
         }
 
-        let copyrights = authorship::file(root, Path::new(&relative_path))?;
+        let copyrights = operations.file(root, Path::new(&relative_path))?;
         if copyrights.is_empty() {
             continue;
         }
 
-        let contents = fs::read_to_string(&path)
+        let contents = operations
+            .read_file(&path)
             .map_err(|error| Error::new(format!("{}: {error}", path.display())))?;
         let updated = source::update_source(&contents, &copyrights);
-        if replace_if_changed(&path, &updated)? {
+        if operations.replace_if_changed(&path, &updated)? {
             summary.files_changed += 1;
         }
         summary.source_files += 1;
@@ -154,6 +185,14 @@ fn heading_text(node: &Node) -> String {
 }
 
 fn replace_if_changed(path: &Path, contents: &str) -> Result<bool> {
+    replace_if_changed_using(path, contents, write_temporary_file)
+}
+
+fn replace_if_changed_using(
+    path: &Path,
+    contents: &str,
+    replace: impl FnOnce(NamedTempFile, &Path, &str) -> Result<()>,
+) -> Result<bool> {
     let target_path = path.canonicalize().unwrap_or_else(|_| path.to_owned());
     match fs::read_to_string(&target_path) {
         Ok(existing) if existing == contents => return Ok(false),
@@ -165,22 +204,44 @@ fn replace_if_changed(path: &Path, contents: &str) -> Result<bool> {
     let parent = target_path
         .parent()
         .ok_or_else(|| Error::new("updated file has no parent directory"))?;
-    let mut temporary = NamedTempFile::new_in(parent)?;
-    temporary.write_all(contents.as_bytes())?;
-    if let Ok(metadata) = fs::metadata(&target_path) {
-        temporary
-            .as_file()
-            .set_permissions(metadata.permissions())?;
-    }
-    temporary.as_file().sync_all()?;
-    persist(temporary, &target_path)?;
+    let temporary = NamedTempFile::new_in(parent)?;
+    replace(temporary, &target_path, contents)?;
     Ok(true)
 }
 
-fn persist(temporary: NamedTempFile, path: &Path) -> Result<()> {
-    temporary
-        .persist(path)
-        .map_err(|error| Error::from(error.error))?;
+trait TemporaryReplacementFile: Write + Sized {
+    fn set_permissions(&self, permissions: fs::Permissions) -> std::io::Result<()>;
+    fn sync_all(&self) -> std::io::Result<()>;
+    fn persist(self, path: &Path) -> std::io::Result<()>;
+}
+
+impl TemporaryReplacementFile for NamedTempFile {
+    fn set_permissions(&self, permissions: fs::Permissions) -> std::io::Result<()> {
+        self.as_file().set_permissions(permissions)
+    }
+
+    fn sync_all(&self) -> std::io::Result<()> {
+        self.as_file().sync_all()
+    }
+
+    fn persist(self, path: &Path) -> std::io::Result<()> {
+        NamedTempFile::persist(self, path)
+            .map(|_| ())
+            .map_err(|error| error.error)
+    }
+}
+
+fn write_temporary_file<T: TemporaryReplacementFile>(
+    mut temporary: T,
+    path: &Path,
+    contents: &str,
+) -> Result<()> {
+    temporary.write_all(contents.as_bytes())?;
+    if let Ok(metadata) = fs::metadata(path) {
+        temporary.set_permissions(metadata.permissions())?;
+    }
+    temporary.sync_all()?;
+    temporary.persist(path)?;
     Ok(())
 }
 
@@ -193,6 +254,53 @@ mod tests {
     use socketry_markdown::unist::Position;
     use std::fs;
     use tempfile::tempdir;
+
+    struct FailingOperations {
+        failure: &'static str,
+    }
+
+    impl FailingOperations {
+        fn error(&self, operation: &str) -> Result<()> {
+            if self.failure == operation {
+                Err(Error::new(format!("injected {operation} failure")))
+            } else {
+                Ok(())
+            }
+        }
+    }
+
+    impl UpdateOperations for FailingOperations {
+        fn repository(&mut self, _root: &Path) -> Result<Vec<Copyright>> {
+            self.error("repository")?;
+            Ok(Vec::new())
+        }
+
+        fn rust_files(&mut self, _root: &Path) -> Result<Vec<String>> {
+            self.error("rust-files")?;
+            if matches!(self.failure, "file" | "replace-source") {
+                Ok(vec!["src/lib.rs".to_owned()])
+            } else {
+                Ok(Vec::new())
+            }
+        }
+
+        fn file(&mut self, _root: &Path, _path: &Path) -> Result<Vec<Copyright>> {
+            self.error("file")?;
+            Ok(vec![Copyright::new(2024, 2024, "Alice")])
+        }
+
+        fn replace_if_changed(&mut self, path: &Path, _contents: &str) -> Result<bool> {
+            let filename = path.file_name().and_then(|filename| filename.to_str());
+            let failure = match filename {
+                Some("license.md") => "replace-license",
+                Some("readme.md") => "replace-readme",
+                Some("lib.rs") => "replace-source",
+                _ => "",
+            };
+            self.error(failure)?;
+            Ok(false)
+        }
+    }
 
     fn message() -> socketry_markdown::message::Message {
         socketry_markdown::message::Message {
@@ -449,6 +557,45 @@ mod tests {
     }
 
     #[test]
+    fn propagates_errors_from_each_project_update_stage() {
+        for failure in [
+            "repository",
+            "replace-license",
+            "replace-readme",
+            "rust-files",
+            "file",
+            "replace-source",
+        ] {
+            let directory = tempdir().unwrap();
+            if failure == "replace-readme" {
+                fs::write(
+                    directory.path().join("readme.md"),
+                    "# Project\n\n## License\n\nMIT terms.\n",
+                )
+                .unwrap();
+            }
+            if matches!(failure, "file" | "replace-source") {
+                let source = directory.path().join("src/lib.rs");
+                fs::create_dir_all(source.parent().unwrap()).unwrap();
+                fs::write(source, "pub fn example() {}\n").unwrap();
+            }
+
+            let mut operations = FailingOperations { failure };
+            let error = update_with(directory.path(), &mut operations).unwrap_err();
+            assert!(error.to_string().contains(failure), "{failure}: {error}");
+        }
+
+        let directory = tempdir().unwrap();
+        let mut operations = FailingOperations { failure: "unused" };
+        assert!(update_with(directory.path(), &mut operations).is_ok());
+        assert!(
+            operations
+                .replace_if_changed(&directory.path().join("other.md"), "content")
+                .is_ok()
+        );
+    }
+
+    #[test]
     fn replace_if_changed_creates_updates_and_preserves_file_permissions() {
         let directory = tempdir().unwrap();
         let path = directory.path().join("license.md");
@@ -490,10 +637,87 @@ mod tests {
     }
 
     #[test]
-    fn reports_persist_failures() {
-        let directory = tempdir().unwrap();
-        let temporary = NamedTempFile::new_in(directory.path()).unwrap();
+    fn propagates_temporary_replacement_failures() {
+        #[derive(Clone, Copy)]
+        enum Failure {
+            Write,
+            Permissions,
+            Sync,
+            Persist,
+            Pass,
+        }
 
-        assert!(persist(temporary, directory.path()).is_err());
+        struct FailingFile(Failure);
+
+        impl Write for FailingFile {
+            fn write(&mut self, contents: &[u8]) -> std::io::Result<usize> {
+                if matches!(self.0, Failure::Write) {
+                    Err(std::io::Error::other("injected write failure"))
+                } else {
+                    Ok(contents.len())
+                }
+            }
+
+            fn flush(&mut self) -> std::io::Result<()> {
+                Ok(())
+            }
+        }
+
+        impl TemporaryReplacementFile for FailingFile {
+            fn set_permissions(&self, _permissions: fs::Permissions) -> std::io::Result<()> {
+                if matches!(self.0, Failure::Permissions) {
+                    Err(std::io::Error::other("injected permissions failure"))
+                } else {
+                    Ok(())
+                }
+            }
+
+            fn sync_all(&self) -> std::io::Result<()> {
+                if matches!(self.0, Failure::Sync) {
+                    Err(std::io::Error::other("injected sync failure"))
+                } else {
+                    Ok(())
+                }
+            }
+
+            fn persist(self, _path: &Path) -> std::io::Result<()> {
+                if matches!(self.0, Failure::Persist) {
+                    Err(std::io::Error::other("injected persist failure"))
+                } else {
+                    Ok(())
+                }
+            }
+        }
+
+        let directory = tempdir().unwrap();
+        let target = directory.path().join("target");
+        fs::write(&target, "old").unwrap();
+
+        for (failure, expected) in [
+            (Failure::Write, "write"),
+            (Failure::Permissions, "permissions"),
+            (Failure::Sync, "sync"),
+            (Failure::Persist, "persist"),
+        ] {
+            assert!(
+                write_temporary_file(FailingFile(failure), &target, "new")
+                    .unwrap_err()
+                    .to_string()
+                    .contains(expected)
+            );
+        }
+
+        let mut passing_file = FailingFile(Failure::Pass);
+        passing_file.flush().unwrap();
+        assert!(write_temporary_file(passing_file, &target, "new").is_ok());
+
+        assert!(
+            replace_if_changed_using(&directory.path().join("other"), "new", |_, _, _| {
+                Err(Error::new("injected replacement failure"))
+            })
+            .unwrap_err()
+            .to_string()
+            .contains("injected replacement failure")
+        );
     }
 }
