@@ -25,6 +25,7 @@ pub fn refresh(context: &mut bake::Context) -> bake::Result<String> {
 mod task_tests {
     use crate::test_support::GitRepository;
     use bake::Registry;
+    use tempfile::tempdir;
 
     #[test]
     fn reports_updated_license_and_source_file_counts() {
@@ -44,5 +45,13 @@ mod task_tests {
             result,
             "Changed 2 file(s); refreshed 1 tracked Rust source file(s)"
         );
+    }
+
+    #[test]
+    fn propagates_update_errors_from_the_license_task() {
+        let directory = tempdir().unwrap();
+        let mut context = Registry::new().context(directory.path());
+
+        assert!(crate::refresh(&mut context).is_err());
     }
 }

@@ -47,7 +47,11 @@ pub(crate) fn file(root: &Path, path: &Path) -> Result<Vec<Copyright>> {
 }
 
 pub(crate) fn rust_files(root: &Path) -> Result<Vec<String>> {
-    let output = git_command(root)
+    rust_files_with_git(root, "git")
+}
+
+fn rust_files_with_git(root: &Path, executable: &str) -> Result<Vec<String>> {
+    let output = git_command(root, executable)
         .args(["ls-files", "--cached", "-z", "--", "*.rs"])
         .output()?;
     ensure_success(&output.status, &output.stderr, "git ls-files")?;
@@ -76,8 +80,12 @@ fn parse_rust_paths(output: &[u8]) -> Result<Vec<String>> {
 }
 
 fn collect(root: &Path, path: Option<&Path>) -> Result<Vec<Copyright>> {
+    collect_with_git(root, path, "git")
+}
+
+fn collect_with_git(root: &Path, path: Option<&Path>, executable: &str) -> Result<Vec<Copyright>> {
     let ignored = ignored_revisions(root)?;
-    let mut command = git_command(root);
+    let mut command = git_command(root, executable);
     command.args(["log", "--format=%H%x00%aN%x00%aI"]);
     if path.is_some() {
         command.arg("--follow");
@@ -154,8 +162,8 @@ fn ignored_revisions(root: &Path) -> Result<HashSet<String>> {
         .collect())
 }
 
-fn git_command(root: &Path) -> Command {
-    let mut command = Command::new("git");
+fn git_command(root: &Path, executable: &str) -> Command {
+    let mut command = Command::new(executable);
     command.current_dir(root);
     command
 }
@@ -311,6 +319,8 @@ mod tests {
         let directory = tempfile::tempdir().unwrap();
         assert!(repository(directory.path()).is_err());
         assert!(rust_files(directory.path()).is_err());
+        assert!(rust_files_with_git(directory.path(), "missing-git-for-test").is_err());
+        assert!(collect_with_git(directory.path(), None, "missing-git-for-test").is_err());
 
         let repository = GitRepository::new();
         repository.write("src/lib.rs", "pub fn fixture() {}\n");
