@@ -1,5 +1,9 @@
 # Releases
 
+## v0.2.2
+
+- Expose the descriptive `UpdateSummary` result type while preserving `Update` as a compatibility alias.
+
 ## v0.2.1
 
 - Resolve development task dependencies to the current checkout.
